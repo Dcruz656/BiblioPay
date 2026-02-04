@@ -1,11 +1,10 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#2563eb">
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="manifest" href="manifest.json">
     <title>BiblioPay - Gestión Universitaria</title>
@@ -29,12 +28,29 @@
         .animate-shake {
             animation: shake 0.2s ease-in-out 0s 2;
         }
-        /* Ocultar scrollbars para una apariencia más limpia en app */
         ::-webkit-scrollbar {
             width: 0px;
             background: transparent;
         }
     </style>
+    <script type="text/javascript">
+      // Script para manejar la redirección del 404.html en GitHub Pages
+      (function(l) {
+        if (l.search[1] === 'p') {
+          var decoded = l.search.slice(1).split('&').map(function(s) { 
+            return s.replace(/~and~/g, '&') 
+          }).filter(function(v) { 
+            return v.indexOf('p=/') === 0 
+          })[0];
+          if (decoded !== undefined) {
+            window.history.replaceState(null, null,
+              l.pathname.slice(0, -1) + decoded.slice(3) +
+              (l.hash || '')
+            );
+          }
+        }
+      }(window.location));
+    </script>
 <script type="importmap">
 {
   "imports": {
@@ -53,5 +69,7 @@
 </head>
 <body>
     <div id="root"></div>
+    <!-- Punto de entrada principal de la aplicación -->
+    <script type="module" src="index.tsx"></script>
 </body>
 </html>
