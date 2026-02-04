@@ -34,17 +34,19 @@
             content: 'Cargando BiblioPay...';
             display: flex; align-items: center; justify-content: center; height: 100vh; color: #64748b;
         }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 
     <script type="importmap">
 {
   "imports": {
-    "react": "https://esm.sh/react@19.2.4",
-    "react-dom": "https://esm.sh/react-dom@19.2.4",
-    "react-dom/client": "https://esm.sh/react-dom@19.2.4/client",
-    "recharts": "https://esm.sh/recharts@3.7.0",
-    "lucide-react": "https://esm.sh/lucide-react@0.563.0",
-    "@google/genai": "https://esm.sh/@google/genai@1.39.0",
+    "react": "https://esm.sh/react@19.0.0",
+    "react-dom": "https://esm.sh/react-dom@19.0.0",
+    "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
+    "recharts": "https://esm.sh/recharts@2.15.0",
+    "lucide-react": "https://esm.sh/lucide-react@0.468.0",
+    "@google/genai": "https://esm.sh/@google/genai@0.2.1",
     "xlsx": "https://esm.sh/xlsx@0.18.5",
     "jspdf": "https://esm.sh/jspdf@2.5.1",
     "jspdf-autotable": "https://esm.sh/jspdf-autotable@3.8.2",
@@ -56,7 +58,137 @@
 </head>
 <body>
     <div id="root"></div>
-    <!-- Cargamos index.tsx como un script de Babel. Babel lo descargará mediante fetch() (ignorando el MIME) y lo ejecutará -->
-    <script type="text/babel" data-type="module" data-src="index.tsx" data-presets="react,typescript"></script>
-</body>
-</html>
+    <!-- Inyectamos el código directamente para evitar errores de tipo MIME del servidor -->
+    <script type="text/babel" data-type="module" data-presets="react,typescript">
+import React, { useState, useEffect, useRef } from 'react';
+import ReactDOM from 'react-dom/client';
+import { 
+  Plus, Search, Library, Receipt, FileText, Hash, LogOut, FileSpreadsheet, 
+  Sparkles, Loader2, AlertCircle, ChevronUp, ChevronDown, PlusCircle, X, 
+  Upload, Trash2, Calendar, DollarSign, TrendingUp, BookOpen, Clock, 
+  Lock, User, ArrowRight 
+} from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from 'recharts';
+import { GoogleGenAI, Type } from "@google/genai";
+import * as XLSX from 'xlsx';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+
+// --- TYPES ---
+enum TransactionCategory {
+  MULTAS = 'Multas',
+  IMPRESIONES = 'Impresiones/Fotocopias',
+  CARNETS = 'Reposición de Carnets',
+  ESPACIOS = 'Alquiler de Espacios',
+  VENTAS = 'Venta de Materiales',
+  DONACIONES = 'Donaciones',
+  OTROS = 'Otros'
+}
+
+interface Transaction {
+  id: string;
+  amount: number;
+  category: TransactionCategory;
+  description: string;
+  date: string;
+  branch: string;
+}
+
+interface AIInsight {
+  summary: string;
+  recommendations: string[];
+  trend: 'up' | 'down' | 'stable';
+}
+
+const UNIVERSITY_BRANCHES = [
+  'Biblioteca Central', 'Facultad de Ingeniería', 'Facultad de Medicina', 'Campus Norte', 'Ciencias Sociales'
+];
+
+const CATEGORY_COLORS: Record<string, string> = {
+  [TransactionCategory.MULTAS]: '#ef4444',
+  [TransactionCategory.IMPRESIONES]: '#3b82f6',
+  [TransactionCategory.CARNETS]: '#10b981',
+  [TransactionCategory.ESPACIOS]: '#f59e0b',
+  [TransactionCategory.VENTAS]: '#8b5cf6',
+  [TransactionCategory.DONACIONES]: '#ec4899',
+  [TransactionCategory.OTROS]: '#64748b'
+};
+
+const INITIAL_TRANSACTIONS: Transaction[] = [
+  { id: '1', amount: 15.50, category: TransactionCategory.MULTAS, description: 'Multa retraso: El Aleph', date: new Date().toISOString(), branch: 'Biblioteca Central' },
+  { id: '2', amount: 45.00, category: TransactionCategory.IMPRESIONES, description: 'Copias examen Medicina', date: new Date().toISOString(), branch: 'Facultad de Medicina' }
+];
+
+const analyzeLibraryIncome = async (transactions: Transaction[]) => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const dataSummary = transactions.map(t => ({ amount: t.amount, category: t.category, branch: t.branch }));
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: `Analiza estos ingresos bibliotecarios universitarios y sugiere mejoras estratégicas en español: ${JSON.stringify(dataSummary)}`,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            summary: { type: Type.STRING },
+            recommendations: { type: Type.ARRAY, items: { type: Type.STRING } },
+            trend: { type: Type.STRING, enum: ["up", "down", "stable"] }
+          },
+          required: ["summary", "recommendations", "trend"]
+        }
+      }
+    });
+    return JSON.parse(response.text?.trim() || "{}");
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+};
+
+const LoginForm = ({ onLogin }) => {
+  const [user, setUser] = useState('');
+  const [pass, setPass] = useState('');
+  const [err, setErr] = useState(false);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (user === 'admin' && pass === 'admin') onLogin();
+    else { setErr(true); setTimeout(() => setErr(false), 2000); }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+      <div className="max-w-md w-full bg-white p-8 rounded-3xl shadow-xl border border-slate-100 text-center animate-fade-in">
+        <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl text-white mb-4 shadow-lg">
+          <Library size={32} />
+        </div>
+        <h1 className="text-3xl font-black text-slate-900 mb-6 tracking-tight">BiblioPay</h1>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <input type="text" placeholder="Usuario (admin)" className="w-full p-4 bg-slate-50 rounded-xl border outline-none focus:ring-2 focus:ring-blue-500 transition-all" value={user} onChange={e => setUser(e.target.value)} required />
+          <input type="password" placeholder="Contraseña (admin)" className="w-full p-4 bg-slate-50 rounded-xl border outline-none focus:ring-2 focus:ring-blue-500 transition-all" value={pass} onChange={e => setPass(e.target.value)} required />
+          {err && <div className="text-red-500 text-xs font-bold animate-shake">Credenciales inválidas</div>}
+          <button type="submit" className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-blue-700 transition-all flex items-center justify-center gap-2">Entrar <ArrowRight size={18} /></button>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const App = () => {
+  const [auth, setAuth] = useState(false);
+  const [txs, setTxs] = useState<Transaction[]>(INITIAL_TRANSACTIONS);
+  const [showForm, setShowForm] = useState(false);
+  const [aiResult, setAiResult] = useState<AIInsight | null>(null);
+  const [loadingAi, setLoadingAi] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('biblio_txs_v4');
+    if (saved) setTxs(JSON.parse(saved));
+    if (localStorage.getItem('biblio_auth_v4') === 'true') setAuth(true);
+  }, []);
+
+  useEffect(() => { localStorage.setItem('biblio_txs_v4', JSON.stringify(txs)); }, [txs]);
+
+  const handleLogin = () => { setAuth(true); localStorage.setItem('biblio_auth_v4', '
