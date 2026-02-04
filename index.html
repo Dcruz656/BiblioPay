@@ -100,8 +100,8 @@
 <body>
     <div id="root"></div>
     
-    <!-- Cargador principal usando Babel. Al no usar data-type="module", evitamos el error de MIME -->
-    <script type="text/babel" data-presets="react,typescript">
+    <!-- Cargador principal usando Babel. data-type="module" es CRÍTICO para permitir declaraciones import -->
+    <script type="text/babel" data-type="module" data-presets="react,typescript">
       import React from 'react';
       import ReactDOM from 'react-dom/client';
       import App from './App.tsx';
