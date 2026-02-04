@@ -1,0 +1,7 @@
+{
+  "name": "BiblioPay - Gestión de Ingresos Bibliotecarios",
+  "description": "Una plataforma integral para la administración y análisis de ingresos diarios en bibliotecas universitarias, incluyendo multas, servicios de impresión y membresías.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
